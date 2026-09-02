@@ -1,0 +1,178 @@
+# Player Portals
+
+A Fabric mod that adds one item: a striker that ties two obsidian frames to each other instead of to the map.
+
+## What This Mod Does
+
+A nether portal does not go somewhere. It goes to whatever the game finds nearest a divided-by-eight
+coordinate, which is why a portal you built on purpose comes out somewhere you did not, and why
+linking two of them reliably is a job with a spreadsheet in it.
+
+An **Obsidian Portal Striker** answers the question directly. Strike one frame, walk to another,
+strike that. The two now lead to each other, and the striker is spent.
+
+## Using One
+
+1. Build two portal frames, wherever you want them.
+2. Strike the first. It lights, and the striker remembers it.
+3. Strike the second. It lights, the pair is tied, and the striker is gone.
+
+Either end takes you to the other. **Any mix of dimensions**: overworld to nether, nether to end,
+end to overworld, or both ends in one world - the two are tied to each other, and where they happen
+to be is not part of the arrangement.
+
+An already-lit portal can be struck too, and usually is: the far end is often one you built last
+week. Nothing needs the frame to be dark, only to be a portal by the time the striker looks.
+
+## Names
+
+Name a striker on an anvil before you use it and the pair it makes wears that name, hanging in the
+top-middle of both portals. Leave it unnamed and there is no sign, which is most of them.
+
+Both ends, again: the striker carried one name and what it named was the pair.
+
+**Renaming needs no second striker.** Name a name tag on an anvil and right-click either frame with
+it, the same gesture a dye uses. Both signs change together and the tag is spent. An unnamed name
+tag does nothing here, exactly as it does nothing to a cow.
+
+The sign is a vanilla text display, so it is there for **everybody**, Pandorical or not. A portal
+you cannot read is a portal you have to walk into to identify, and that is exactly the trip the
+name saves.
+
+Mine a named portal out and its sign comes down with it, checked as the chunk loads rather than
+left hanging over an empty frame.
+
+## Colour
+
+A struck portal waiting for its other half is **nearly black**: it does not go anywhere yet, and
+looking dead is the honest way to say so.
+
+Tying the pair lights both ends in **one colour, picked at random** from the sixteen dyes - so the
+colour you were handed is always one you could have chosen, and always one the portal beside it can
+be told apart from. **Right-click either frame with a dye** to choose a different one; both ends
+change together, because the colour names the pair rather than the door.
+
+Dye and name tags both want a **finished pair**. A struck end still waiting for its other half is
+near black on purpose and takes its colour and name the moment it is tied, so anything chosen for
+it beforehand would be overwritten by the strike that finished it.
+
+Untying a pair takes the colour with it. A portal that leads nowhere has nothing to be the colour
+of.
+
+This needs Pandorical on the client. A vanilla nether portal's model carries no tint index, so
+nothing can colour it as the game ships it; the mod syncs vanilla's own two portal models with one
+added, and paints through Pandorical's per-position block tint. A client without Pandorical sees
+ordinary purple portals that work exactly the same.
+
+## Festering, Where Festering Portal Is Installed
+
+Build a player portal out of **crying obsidian** and it leaks - but what leaks through is the place
+on the other side of it, not the nether.
+
+[Festering Portal](https://github.com/fatlard1993/festering-portal) turns the ground around a
+crying-obsidian portal into nether, which is exactly right for a portal that goes to the nether,
+because until now that is the only place a portal went.
+
+A portal to the End corrupts the ground around it into End instead: pale, barren, purpur through
+it. One to the nether does what it always did. And a portal that never leaves the overworld leaks
+the **far end's own country**: tie a desert to an ice sheet and the sand creeps toward snow while
+the snow creeps toward sand.
+
+**Only where the two ends disagree.** A portal from one plain to another has nothing to spread -
+the ground at both ends is already the same ground, and corrupting it into itself is an effect
+nobody would ever see.
+
+The far end's character is read from its biome tags and what falls out of its sky, not from a list
+of biome names, so a modded desert is a desert here the day it is installed. Tags are asked first
+and that ordering matters: badlands, savanna, jungle and taiga all report the same weather as
+somewhere they look nothing like.
+
+Two things had to be added for that, and they are different problems:
+
+- **A player portal never registered as a festering one at all.** Festering Portal watches fire
+  being placed inside a frame, which is how every portal in the game is lit except these - a
+  striker builds the portal blocks itself and lights nothing. So a portal of solid crying obsidian
+  sat there doing nothing while an ordinary one beside it corrupted half a forest.
+- **What a block turns into is decided without knowing whose corruption is asking.** That is fine
+  when every portal spreads the same thing and useless the moment they do not, so the portal being
+  processed is noted as its spread begins and read back inside the transformation.
+
+Optional throughout. Without Festering Portal installed none of it loads, and crying obsidian in a
+frame is just an expensive frame.
+
+## Hubs
+
+Two portals tied to each other is the common case and stays the default. For everything else -
+a room with six doors in it, a mine with a way out on every level - **sneak and strike an existing
+portal** to wire yourself to it. Every frame you strike after that becomes a way *to* it.
+
+Sneak-strike the same portal again to unwire, and go back to making pairs.
+
+**One way.** A spoke leads to the hub; the hub carries on leading wherever it already led. That is
+the whole difference between this and a pair, and it is what lets six portals share one
+destination without six of them fighting over which way it faces.
+
+Spokes take the hub's colour and name, because what a spoke is for is arriving at the hub.
+
+The wiring is remembered against **you**, not the striker, so a hub with six ways in is one
+sneak-strike and six strikes rather than six of each. It also cannot be otherwise: the obvious
+home for it is a data component on the item, and components ride the registry sync, which every
+mod in this suite avoids so that a client that has never heard of it can still play here.
+
+## Details Worth Knowing
+
+- **The first end is held against you, not the item.** A striker you hand to somebody half used is
+  just a striker. What is actually true is that a person walked from one place to another holding a
+  plan, so the plan is filed under the person - and it survives a logout.
+- **Striking the same portal twice** says so and changes nothing, rather than spending the striker
+  on a link from a place to itself.
+- **Striking a portal that already leads somewhere** re-aims it. The alternative is a portal nobody
+  can repurpose without finding and breaking its far end first, which for an end in another
+  dimension is a trip.
+- **Break either end and the link is gone.** Noticed on the way through rather than watched for: a
+  portal whose partner has been mined out quietly goes back to being an ordinary nether portal.
+- **Everything unlinked is untouched.** An ordinary nether portal is still an ordinary nether
+  portal, including every one that existed before this was installed.
+- **It is a real nether portal.** Not a block of this mod's own: lit by fire, repaired by vanilla,
+  understood by every mod that has ever looked at one. A struck frame is a nether portal that was
+  told where to go.
+
+## Crafting
+
+Obsidian around a flint and steel, over an ender pearl.
+
+## Pandorical
+
+Player Portals registers its item model through Pandorical's content sync.
+
+**The Pandorical mod must be installed client-side** to see the striker rendered with its texture.
+Without it the mod still works, but a connecting client sees an untextured item.
+
+## Installation
+
+Install server-side alongside its declared dependencies (see `fabric.mod.json`); connecting clients
+need only Pandorical. Version targets live in `gradle.properties` (Minecraft, loader, Fabric API)
+and `fabric.mod.json` (Java).
+
+## Key Files
+
+| File | Responsibility |
+|------|---------------|
+| `Main.java` | Entry point; the item and its creative tab |
+| `PortalStrikerItem.java` | Lighting a frame, holding the first end, tying the pair |
+| `PortalAnchor.java` | Naming a portal in a way that survives being relit |
+| `PortalRegistry.java` | Which portals lead to which, and who is half way through a pair |
+| `PortalLinks.java` | Where a portal actually goes, when somebody has said |
+| `PortalColors.java` | What colour a portal is, and getting it onto the glass |
+| `PortalSigns.java` | The name a striker was given, hanging in the portal it made |
+| `PortalMarking.java` | Changing a pair's colour or its name, after the fact |
+| `mixin/NetherPortalBlockMixin.java` | Answering the one question a portal asks |
+
+## Art
+
+`generate_icon.py` and `generate_textures.py` cut the mod's icon and item sprite out of the vanilla
+jar. Both are deterministic; re-run either after a Minecraft version bump.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

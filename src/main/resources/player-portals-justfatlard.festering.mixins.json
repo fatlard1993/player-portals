@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "justfatlard.player_portals.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "SpreadingAlgorithmMixin",
+    "BlockTransformationsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

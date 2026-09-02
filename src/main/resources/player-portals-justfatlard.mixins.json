@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "justfatlard.player_portals.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "NetherPortalBlockMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
