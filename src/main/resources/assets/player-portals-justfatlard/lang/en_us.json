@@ -1,7 +1,7 @@
 {
-    "item.player-portals-justfatlard.portal_striker": "Obsidian Portal Striker",
+    "item.player-portals-justfatlard.portal_striker": "Portal Striker",
     "player-portals-justfatlard.striker.no_frame": "There is no portal frame here to strike.",
-    "player-portals-justfatlard.striker.first_end": "This end is struck. Strike another portal to tie them together.",
+    "player-portals-justfatlard.striker.first_end": "This end is struck. The striker holds it: strike another portal to tie them together.",
     "player-portals-justfatlard.striker.same_portal": "That is the end you already struck. Find the other one.",
     "player-portals-justfatlard.striker.linked": "The two portals now lead to each other.",
     "player-portals-justfatlard.striker.dyed": "Both ends take the new colour.",
@@ -10,5 +10,9 @@
     "player-portals-justfatlard.striker.synced": "Wired. Every frame you strike now leads here.",
     "player-portals-justfatlard.striker.synced_named": "Wired to %s. Every frame you strike now leads there.",
     "player-portals-justfatlard.striker.unsynced": "Unwired. Back to making pairs.",
-    "player-portals-justfatlard.striker.spoke": "This portal now leads to the one you wired."
+    "player-portals-justfatlard.striker.spoke": "This portal now leads to the one you wired.",
+    "item.player-portals-justfatlard.linked_striker": "Linked Striker",
+    "player-portals-justfatlard.linked_striker.holding": "Holding the portal at %s, %s, %s in the %s",
+    "player-portals-justfatlard.striker.end_gone": "The end this striker held is gone. It holds this one now.",
+    "item.player-portals-justfatlard.linked_striker.at": "Linked Striker (%s, %s, %s)"
 }

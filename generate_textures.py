@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Generate Player Portals' item sprite: an obsidian striker, already sparking.
+"""Generate Player Portals' item sprite: vanilla's flint and steel with lapis where the flint was.
 
-Both palettes are read out of the vanilla jar rather than written down: the body
-is obsidian's own colours and the sparks are the nether portal's, because those
-are the two things the item is made of and the two things it makes.
+The striker is crafted the way flint and steel is, with lapis in the flint's place, so it looks
+the way flint and steel does with lapis in the flint's place. The steel is vanilla's own pixels,
+untouched; the flint is repainted through the lapis block's blues, keeping its shading. A steel
+shard of our own drawing came first, and read as a blue-and-white paper dart: nothing about it
+said "strike".
 
 Pure stdlib PNG reader and writer (zlib + struct) so it runs without Pillow, the
 same script generated art approach as the rest of the suite. Deterministic:
@@ -21,7 +23,15 @@ import zlib
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "src/main/resources/assets/player-portals-justfatlard/textures/item/portal_striker.png")
+ITEMS = os.path.join(HERE, "src/main/resources/assets/player-portals-justfatlard/textures/item")
+BLOCKS = os.path.join(HERE, "src/main/resources/assets/player-portals-justfatlard/textures/block")
+GREY_PORTAL = os.path.join(BLOCKS, "nether_portal_grey.png")
+OUT = os.path.join(ITEMS, "portal_striker.png")
+LINKED_OUT = os.path.join(ITEMS, "linked_striker.png")
+
+# Where the sparks fly off a linked striker: above the steel, where striking it would throw them.
+# A linked striker is a striker that has been struck once, and it should look like one.
+SPARKS = [(10, 1), (12, 2), (13, 4), (11, 4)]
 
 CLEAR = (0, 0, 0, 0)
 _JAR = None
@@ -100,6 +110,11 @@ def decode_png(data):
             break
 
     channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}[ctype]
+    # For greyscale and truecolour a tRNS chunk names one colour as the transparent one. Vanilla's
+    # flint and steel is exactly that: an 8-bit grey with black keyed out, and read without the
+    # key every one of its empty pixels came back as solid black.
+    grey_key = struct.unpack(">H", trns)[0] if trns and ctype == 0 else None
+    rgb_key = struct.unpack(">HHH", trns) if trns and ctype == 2 else None
     stride = (width * channels * depth + 7) // 8
     step = max(1, (channels * depth) // 8)
     raw = zlib.decompress(idat)
@@ -148,7 +163,7 @@ def decode_png(data):
                     row.append((r, g, b, a))
                 else:
                     v = value * 255 // mask
-                    row.append((v, v, v, 255))
+                    row.append((v, v, v, 0 if value == grey_key else 255))
             pixels.append(row)
         return pixels
 
@@ -160,11 +175,12 @@ def decode_png(data):
             if ctype == 6:
                 row.append(tuple(out[i:i + 4]))
             elif ctype == 2:
-                row.append((out[i], out[i + 1], out[i + 2], 255))
+                rgb = (out[i], out[i + 1], out[i + 2])
+                row.append(rgb + (0 if rgb == rgb_key else 255,))
             elif ctype == 4:
                 row.append((out[i], out[i], out[i], out[i + 1]))
             elif ctype == 0:
-                row.append((out[i], out[i], out[i], 255))
+                row.append((out[i], out[i], out[i], 0 if out[i] == grey_key else 255))
             else:
                 r, g, b = palette[out[i] * 3:out[i] * 3 + 3]
                 a = trns[out[i]] if trns and out[i] < len(trns) else 255
@@ -202,10 +218,8 @@ def tones(texture, keep=5):
                   key=lambda p: 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2])
 
 
-def obsidian():
-    """Outline, shadow, body, highlight."""
-    stone = tones("block/obsidian.png")
-    return stone[0], stone[-3], stone[-2], stone[-1]
+def luminance(px):
+    return 0.299 * px[0] + 0.587 * px[1] + 0.114 * px[2]
 
 
 def portal_light():
@@ -213,86 +227,94 @@ def portal_light():
     return tones("block/nether_portal.png")[-1]
 
 
-# One wedge of obsidian, struck: the shape is a shard rather than a tool because what the
-# striker is, is the frame material with a spark already on it.
-SHARD = [(4, 3), (11, 6), (9, 14), (3, 10)]
-SPARKS = [(12, 2), (13, 4), (10, 1), (14, 6), (11, 4)]
-
-SUPERSAMPLE = 8
-COVERAGE = 0.43
-LIT = 0.3
-SHADOW = 0.62
-OUTLINED = 0.35
-
-
-def inside(poly, x, y):
-    """Even-odd ray cast."""
-    hit = False
-    j = len(poly) - 1
-    for i in range(len(poly)):
-        (xi, yi), (xj, yj) = poly[i], poly[j]
-        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
-            hit = not hit
-        j = i
-    return hit
-
-
-def rasterize(poly, size=16):
-    step = 1.0 / SUPERSAMPLE
-    covered = []
-    for y in range(size):
-        for x in range(size):
-            hits = sum(
-                1
-                for sy in range(SUPERSAMPLE)
-                for sx in range(SUPERSAMPLE)
-                if inside(poly, x + (sx + 0.5) * step, y + (sy + 0.5) * step)
-            )
-            if hits >= COVERAGE * SUPERSAMPLE * SUPERSAMPLE:
-                covered.append((x, y))
-    return covered
-
-
-def draw_shard(sprite, poly):
-    outline, dark, mid, light = obsidian()
-    covered = rasterize(poly, len(sprite))
-    if not covered:
-        return sprite
-    filled = set(covered)
-    x0 = min(x for x, _ in covered)
-    y0 = min(y for _, y in covered)
-    span = (max(x for x, _ in covered) - x0) + (max(y for _, y in covered) - y0) or 1
-    for (x, y) in covered:
-        across = ((x - x0) + (y - y0)) / span
-        on_edge = any((x + dx, y + dy) not in filled
-                      for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        if on_edge and across > OUTLINED:
-            sprite[y][x] = outline
-        elif across < LIT:
-            sprite[y][x] = light
-        elif across < SHADOW:
-            sprite[y][x] = mid
-        else:
-            sprite[y][x] = dark
-    return sprite
-
-
-def draw_sparks(sprite, spots):
-    spark = portal_light()
-    for (x, y) in spots:
-        if 0 <= x < len(sprite[0]) and 0 <= y < len(sprite):
-            sprite[y][x] = spark
-    return sprite
+def build_linked(sprite):
+    """The same striker, already sparking: the sparks are the nether portal's own light."""
+    spark = portal_light() + (255,)
+    linked = [list(row) for row in sprite]
+    for x, y in SPARKS:
+        linked[y][x] = spark
+    return linked
 
 
 def build_item():
-    sprite = [[CLEAR] * 16 for _ in range(16)]
-    draw_shard(sprite, SHARD)
-    draw_sparks(sprite, SPARKS)
+    """Vanilla's flint and steel, its flint turned to lapis.
+
+    The sprite is two things that never touch: the steel C on the left and the flint on the
+    right. Which is which is settled by colour rather than by position, because the two share no
+    colour at all: whatever appears in the left third of the sprite is steel, and every other
+    colour is flint.
+    """
+    rows = [list(row) for row in vanilla("item/flint_and_steel.png")[:16]]
+    steel = {row[x][:3] for row in rows for x in range(6) if row[x][3]}
+
+    # Lapis darkest to brightest. The flint's own values are spread across that range, so the
+    # lump keeps every facet the vanilla artist gave it and only changes colour.
+    blues = tones("block/lapis_block.png", keep=6)
+    flint = [row[x][:3] for row in rows for x in range(16) if row[x][3] and row[x][:3] not in steel]
+    lo, hi = min(map(luminance, flint)), max(map(luminance, flint))
+
+    sprite = []
+    for row in rows:
+        out = []
+        for px in row:
+            if not px[3] or px[:3] in steel:
+                out.append(px if px[3] else CLEAR)
+                continue
+            t = (luminance(px) - lo) / (hi - lo) if hi > lo else 0
+            step = t * (len(blues) - 1)
+            a, b = blues[int(step)], blues[min(len(blues) - 1, int(step) + 1)]
+            f = step - int(step)
+            out.append(tuple(round(a[i] + (b[i] - a[i]) * f) for i in range(3)) + (255,))
+        sprite.append(out)
     return sprite
 
 
+def build_grey_portal():
+    """Vanilla's portal, drained to its brightness, and the tint that puts the purple back.
+
+    A block tint multiplies the texture, and the portal texture is purple: a white tint left it
+    purple, a yellow tint made it brown, and half the dye palette came out looking like no dye at
+    all. Drained to grey, the texture is nothing but shading and the tint is the whole of the
+    colour, so white is white and yellow is yellow. Ordinary portals get the purple back through
+    the tint's fallback, which is the vanilla texture's own average colour over its own average
+    brightness: the one tint that makes grey times tint land where vanilla was.
+    """
+    rows = vanilla("block/nether_portal.png")
+    # Brightness first, then how far the texture's strongest channel sits above it: the grey is
+    # lifted by that much so the fallback tint fits under white, since a tint cannot brighten.
+    total = [0, 0, 0]
+    lum_total = 0
+    for row in rows:
+        for px in row:
+            if px[3] == 0:
+                continue
+            for i in range(3):
+                total[i] += px[i]
+            lum_total += luminance(px)
+    lift = max(total[i] / lum_total for i in range(3))
+    grey = []
+    grey_total = 0
+    for row in rows:
+        out = []
+        for px in row:
+            if px[3] == 0:
+                out.append(CLEAR)
+                continue
+            l = min(255, round(luminance(px) * lift))
+            out.append((l, l, l, px[3]))
+            grey_total += l
+        grey.append(out)
+    fallback = tuple(min(255, round(total[i] / grey_total * 255)) for i in range(3))
+    return grey, fallback
+
+
 if __name__ == "__main__":
+    grey, fallback = build_grey_portal()
+    write_png(GREY_PORTAL, grey)
+    with open(GREY_PORTAL + ".mcmeta", "w") as f:
+        f.write('{\n  "animation": {}\n}\n')
+    print("portal fallback tint: 0xFF%02X%02X%02X (put in Main.VANILLA_PORTAL)" % fallback)
     sprite = build_item()
     assert len(sprite) == 16 and len(sprite[0]) == 16, "item sprites are 16x16"
     write_png(OUT, sprite)
+    write_png(LINKED_OUT, build_linked(sprite))

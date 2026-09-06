@@ -28,6 +28,17 @@ public class Main implements ModInitializer {
 		new Item.Properties().stacksTo(1).setId(PORTAL_STRIKER_KEY)
 	);
 
+	public static final Identifier LINKED_STRIKER_ID = Identifier.fromNamespaceAndPath(MOD_ID, "linked_striker");
+	public static final ResourceKey<Item> LINKED_STRIKER_KEY = ResourceKey.create(Registries.ITEM, LINKED_STRIKER_ID);
+
+	/** A striker carrying its first end. Never crafted: a plain striker becomes one. */
+	public static final LinkedStrikerItem LINKED_STRIKER = new LinkedStrikerItem(
+		new Item.Properties().stacksTo(1).setId(LINKED_STRIKER_KEY)
+	);
+
+	/** Vanilla's portal colour over the grey texture; printed by generate_textures.py. */
+	private static final int VANILLA_PORTAL = 0xFF7A0FFF;
+
 	public static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(MOD_ID);
 
 	@Override
@@ -36,6 +47,9 @@ public class Main implements ModInitializer {
 			PandoricalApi.content().registerItem(MOD_ID + ":portal_striker", new ItemRegistration()
 				.maxStackSize(1)
 				.model(MOD_ID + ":item/portal_striker"));
+			PandoricalApi.content().registerItem(MOD_ID + ":linked_striker", new ItemRegistration()
+				.maxStackSize(1)
+				.model(MOD_ID + ":item/linked_striker"));
 			PandoricalApi.content().registerModAssets(MOD_ID);
 
 			// A nether portal's model carries no tint index, so nothing can colour it as vanilla
@@ -44,10 +58,16 @@ public class Main implements ModInitializer {
 			for (String model : new String[] {"nether_portal_ns", "nether_portal_ew"}) {
 				syncModelOverride("minecraft/models/block/" + model + ".json");
 			}
-			PandoricalApi.blockTints().positional("minecraft:nether_portal");
+			// The portal texture the client draws is vanilla's drained to grey, so the tint is the
+			// whole of the colour: white is white and yellow is yellow, where a tint over the
+			// purple original made half the palette look like no dye at all. Untouched portals
+			// get their purple back from the fallback, which generate_textures.py works out as
+			// the one tint that lands the grey where vanilla was.
+			PandoricalApi.blockTints().positional(VANILLA_PORTAL, "minecraft:nether_portal");
 		}
 
 		Registry.register(BuiltInRegistries.ITEM, PORTAL_STRIKER_ID, PORTAL_STRIKER);
+		Registry.register(BuiltInRegistries.ITEM, LINKED_STRIKER_ID, LINKED_STRIKER);
 
 		ResourceKey<CreativeModeTab> tabKey = ResourceKey.create(
 			Registries.CREATIVE_MODE_TAB, Identifier.fromNamespaceAndPath(MOD_ID, "portal_striker"));
@@ -68,8 +88,10 @@ public class Main implements ModInitializer {
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents.CHUNK_LOAD.register(
 			(level, chunk, newlyGenerated) -> {
 				PortalColors.onChunkLoad(level, chunk);
-				PortalSigns.upkeep(level, chunk);
 			});
+		// The painting and the signs' upkeep, once the tick is out of chunk loading.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(
+			PortalColors::paintArrived);
 
 		System.out.println("[" + MOD_ID + "] Loaded (server-side with Pandorical)");
 	}

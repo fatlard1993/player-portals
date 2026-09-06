@@ -102,22 +102,61 @@ public final class PortalColors {
 		if (!paint.isEmpty()) PandoricalApi.blockTints().paint(player, paint);
 	}
 
-	/** A chunk arriving is the moment its portals become visible, so it is the moment to colour them. */
+	/** Chunks that arrived this tick, painted at the end of it. */
+	private static final Map<ServerLevel, java.util.Set<net.minecraft.world.level.ChunkPos>> ARRIVED = new HashMap<>();
+
+	/** How far a portal's sheet can reach from its anchor: the widest sheet the anchor walks. */
+	private static final int SHEET_REACH = 23;
+
+	/**
+	 * A chunk arriving is the moment its portals become visible, so it is the moment to colour
+	 * them. Noted here, painted at the end of the tick.
+	 *
+	 * <p>Not painted here. This runs inside the chunk's own load, and a portal that straddles a
+	 * chunk border has half its sheet in the chunk next door: reading that half from in here asks
+	 * the chunk system for a chunk while standing inside the chunk system, and the server waits
+	 * on itself until the watchdog kills it. It did, with three people on.
+	 */
 	public static void onChunkLoad(ServerLevel level, net.minecraft.world.level.chunk.LevelChunk chunk) {
-		if (level.players().isEmpty()) return;
+		ARRIVED.computeIfAbsent(level, l -> new java.util.HashSet<>()).add(chunk.getPos());
+	}
 
-		Map<BlockPos, Integer> paint = new HashMap<>();
-		PortalRegistry.get(level.getServer()).everyColour().forEach((anchor, argb) -> {
-			if (!anchor.dimension().equals(level.dimension())) return;
-			if (net.minecraft.core.SectionPos.blockToSectionCoord(anchor.pos().getX()) != chunk.getPos().x()) return;
-			if (net.minecraft.core.SectionPos.blockToSectionCoord(anchor.pos().getZ()) != chunk.getPos().z()) return;
-			paint.putAll(sheet(level, anchor, argb));
-		});
+	/**
+	 * Paint the portals in and around every chunk that arrived this tick, and keep their signs,
+	 * from outside chunk loading.
+	 */
+	public static void paintArrived(MinecraftServer server) {
+		if (ARRIVED.isEmpty()) return;
 
-		if (paint.isEmpty()) return;
-		for (ServerPlayer player : level.players()) {
-			PandoricalApi.blockTints().paint(player, paint);
+		for (var arrived : ARRIVED.entrySet()) {
+			ServerLevel level = arrived.getKey();
+			for (net.minecraft.world.level.ChunkPos chunk : arrived.getValue()) {
+				PortalSigns.upkeep(level, chunk);
+			}
+			if (level.players().isEmpty()) continue;
+
+			Map<BlockPos, Integer> paint = new HashMap<>();
+			PortalRegistry.get(server).everyColour().forEach((anchor, argb) -> {
+				if (!anchor.dimension().equals(level.dimension())) return;
+				// Any anchor whose sheet could cross into an arrived chunk, not only the ones
+				// anchored inside it: the far half of a straddling portal is painted when its
+				// chunk arrives, whichever half the anchor sits in.
+				for (net.minecraft.world.level.ChunkPos chunk : arrived.getValue()) {
+					if (anchor.pos().getX() < chunk.getMinBlockX() - SHEET_REACH
+							|| anchor.pos().getX() > chunk.getMaxBlockX() + SHEET_REACH
+							|| anchor.pos().getZ() < chunk.getMinBlockZ() - SHEET_REACH
+							|| anchor.pos().getZ() > chunk.getMaxBlockZ() + SHEET_REACH) continue;
+					paint.putAll(sheet(level, anchor, argb));
+					break;
+				}
+			});
+
+			if (paint.isEmpty()) continue;
+			for (ServerPlayer player : level.players()) {
+				PandoricalApi.blockTints().paint(player, paint);
+			}
 		}
+		ARRIVED.clear();
 	}
 
 	/** Tell everybody in that portal's world about a colour that just changed. */

@@ -59,16 +59,20 @@ public final class PortalRegistry extends SavedData {
 	}
 
 	private record Stored(List<Pair> pairs, List<Pending> pending, List<Painted> colours,
-			List<Named> names, List<Pending> synced) {
+			List<Named> names, List<Pending> synced, List<PortalAnchor> struck) {
 		static final Codec<Stored> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 			Pair.CODEC.listOf().fieldOf("pairs").forGetter(Stored::pairs),
-			Pending.CODEC.listOf().fieldOf("pending").forGetter(Stored::pending),
+			// Still read, never written: the first end used to be held against the player, and a
+			// world saved that way has struck portals filed here. They load as struck.
+			Pending.CODEC.listOf().optionalFieldOf("pending", List.of()).forGetter(Stored::pending),
 			// Optional with an empty default, so a world saved before portals had colours still
 			// loads: a pair tied yesterday must not become unreadable for gaining a colour.
 			Painted.CODEC.listOf().optionalFieldOf("colours", List.of()).forGetter(Stored::colours),
 			Named.CODEC.listOf().optionalFieldOf("names", List.of()).forGetter(Stored::names),
 			// Optional with an empty default, so a world saved before hubs existed still loads.
-			Pending.CODEC.listOf().optionalFieldOf("synced", List.of()).forGetter(Stored::synced)
+			Pending.CODEC.listOf().optionalFieldOf("synced", List.of()).forGetter(Stored::synced),
+			// Every portal a striker has ever touched. Optional for the same reason as the rest.
+			PortalAnchor.CODEC.listOf().optionalFieldOf("struck", List.of()).forGetter(Stored::struck)
 		).apply(instance, Stored::new));
 	}
 
@@ -79,7 +83,12 @@ public final class PortalRegistry extends SavedData {
 		Identifier.parse(STORAGE_KEY), PortalRegistry::new, CODEC, DataFixTypes.LEVEL);
 
 	private final Map<PortalAnchor, PortalAnchor> pairs = new HashMap<>();
-	private final Map<UUID, PortalAnchor> pending = new HashMap<>();
+	/**
+	 * Every portal a striker has touched. A struck portal is a player portal for good: it leads
+	 * where it was told and nowhere else, so one waiting for its other half, or one whose other
+	 * half has been mined out, goes nowhere at all rather than falling back to the nether.
+	 */
+	private final java.util.Set<PortalAnchor> struck = new java.util.HashSet<>();
 	private final Map<UUID, PortalAnchor> synced = new HashMap<>();
 	private final Map<PortalAnchor, Integer> colours = new HashMap<>();
 	private final Map<PortalAnchor, String> names = new HashMap<>();
@@ -94,15 +103,15 @@ public final class PortalRegistry extends SavedData {
 		return this.pairs.get(portal);
 	}
 
-	/** The end this player struck and has not yet matched, or null. */
-	public PortalAnchor pendingFor(UUID player) {
-		return this.pending.get(player);
+	/** Whether a striker has ever touched this portal, which is what makes it one of ours. */
+	public boolean isStruck(PortalAnchor portal) {
+		return this.struck.contains(portal);
 	}
 
-	public void hold(UUID player, PortalAnchor anchor) {
-		this.pending.put(player, anchor);
-		// Struck and going nowhere yet, and it should look like it.
-		this.colours.put(anchor, PortalColors.UNPAIRED);
+	/** A first end, struck and waiting: ours from now on, and dark until it leads somewhere. */
+	public void strike(PortalAnchor anchor) {
+		this.struck.add(anchor);
+		if (!this.pairs.containsKey(anchor)) this.colours.put(anchor, PortalColors.UNPAIRED);
 		this.setDirty();
 	}
 
@@ -139,17 +148,11 @@ public final class PortalRegistry extends SavedData {
 
 	public void syncTo(UUID player, PortalAnchor hub) {
 		this.synced.put(player, hub);
-		// A hub and a half-made pair are opposite intentions; taking one drops the other.
-		this.pending.remove(player);
 		this.setDirty();
 	}
 
 	public void unsync(UUID player) {
 		if (this.synced.remove(player) != null) this.setDirty();
-	}
-
-	public void release(UUID player) {
-		if (this.pending.remove(player) != null) this.setDirty();
 	}
 
 	/**
@@ -168,6 +171,8 @@ public final class PortalRegistry extends SavedData {
 	 * and name, because what a spoke is for is arriving at the hub.
 	 */
 	public void point(PortalAnchor from, PortalAnchor to) {
+		this.struck.add(from);
+		this.struck.add(to);
 		untie(from);
 		this.pairs.put(from, to);
 
@@ -181,6 +186,8 @@ public final class PortalRegistry extends SavedData {
 	}
 
 	public void tie(PortalAnchor a, PortalAnchor b, int argb, String name) {
+		this.struck.add(a);
+		this.struck.add(b);
 		untie(a);
 		untie(b);
 		this.pairs.put(a, b);
@@ -227,7 +234,10 @@ public final class PortalRegistry extends SavedData {
 		this.setDirty();
 	}
 
-	/** Forget this end and whatever it led to, leaving both as ordinary portals. */
+	/**
+	 * Forget where this end led. It stays ours: a struck portal that leads nowhere is dark and
+	 * goes nowhere, rather than turning back into a way to the nether.
+	 */
 	public void untie(PortalAnchor portal) {
 		PortalAnchor partner = this.pairs.remove(portal);
 		if (partner == null) return;
@@ -235,7 +245,7 @@ public final class PortalRegistry extends SavedData {
 		// Only if it was facing back. A hub leads somewhere of its own, and cutting one of the
 		// six spokes pointing at it must not take the hub's own way out with it.
 		if (!portal.equals(this.pairs.get(partner))) {
-			this.colours.remove(portal);
+			this.colours.put(portal, PortalColors.UNPAIRED);
 			this.names.remove(portal);
 			this.signs.remove(portal);
 			this.setDirty();
@@ -243,10 +253,10 @@ public final class PortalRegistry extends SavedData {
 		}
 
 		this.pairs.remove(partner);
-		// The colour goes with the link. A portal that leads nowhere has nothing to be the
-		// colour of, and leaving it painted would promise a far end that is not there.
-		this.colours.remove(portal);
-		this.colours.remove(partner);
+		// The colour goes with the link: a portal that leads nowhere is painted as one, so it
+		// does not promise a far end that is not there.
+		this.colours.put(portal, PortalColors.UNPAIRED);
+		this.colours.put(partner, PortalColors.UNPAIRED);
 		this.names.remove(portal);
 		this.names.remove(partner);
 		// The sign entities themselves are the caller's to discard: this holds ids, not worlds.
@@ -258,7 +268,8 @@ public final class PortalRegistry extends SavedData {
 	private static PortalRegistry fromStored(Stored stored) {
 		PortalRegistry registry = new PortalRegistry();
 		for (Pair pair : stored.pairs()) registry.pairs.put(pair.from(), pair.to());
-		for (Pending held : stored.pending()) registry.pending.put(held.player(), held.anchor());
+		for (Pending held : stored.pending()) registry.struck.add(held.anchor());
+		registry.struck.addAll(stored.struck());
 		for (Painted painted : stored.colours()) registry.colours.put(painted.anchor(), painted.argb());
 		for (Pending held : stored.synced()) registry.synced.put(held.player(), held.anchor());
 		for (Named named : stored.names()) {
@@ -274,9 +285,6 @@ public final class PortalRegistry extends SavedData {
 		List<Pair> pairs = registry.pairs.entrySet().stream()
 			.map(entry -> new Pair(entry.getKey(), entry.getValue()))
 			.toList();
-		List<Pending> pending = registry.pending.entrySet().stream()
-			.map(entry -> new Pending(entry.getKey(), entry.getValue()))
-			.toList();
 		List<Painted> colours = registry.colours.entrySet().stream()
 			.map(entry -> new Painted(entry.getKey(), entry.getValue()))
 			.toList();
@@ -287,6 +295,6 @@ public final class PortalRegistry extends SavedData {
 		List<Pending> synced = registry.synced.entrySet().stream()
 			.map(entry -> new Pending(entry.getKey(), entry.getValue()))
 			.toList();
-		return new Stored(pairs, pending, colours, names, synced);
+		return new Stored(pairs, List.of(), colours, names, synced, List.copyOf(registry.struck));
 	}
 }

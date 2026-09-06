@@ -8,21 +8,35 @@ A nether portal does not go somewhere. It goes to whatever the game finds neares
 coordinate, which is why a portal you built on purpose comes out somewhere you did not, and why
 linking two of them reliably is a job with a spreadsheet in it.
 
-An **Obsidian Portal Striker** answers the question directly. Strike one frame, walk to another,
+A **Portal Striker**, flint and steel with lapis where the flint was, answers the question directly. Strike one frame, walk to another,
 strike that. The two now lead to each other, and the striker is spent.
 
 ## Using One
 
 1. Build two portal frames, wherever you want them.
-2. Strike the first. It lights, and the striker remembers it.
-3. Strike the second. It lights, the pair is tied, and the striker is gone.
+2. Strike the first. It lights, near black, and the striker in your hand becomes a **Linked
+   Striker** holding that end. Unnamed, it carries the portal's coordinates in its name; named
+   on an anvil, it keeps the name, and hovering it says where it points either way.
+3. Strike the second with the linked striker. It lights, the pair is tied, and the striker is gone.
 
 Either end takes you to the other. **Any mix of dimensions**: overworld to nether, nether to end,
 end to overworld, or both ends in one world - the two are tied to each other, and where they happen
 to be is not part of the arrangement.
 
+**You come out in front of the far portal, not inside it**, on whichever face you were looking
+toward, turned to face away from it and still moving. Vanilla sets you down inside the frame, which
+is why the swirl is at full strength while you look for the way out and why standing still for a
+moment sends you straight back. Here the swirl starts to fade as you land and there is nothing to
+walk out of. Only when both faces of the far portal are walled up do you arrive inside, vanilla's
+way.
+
 An already-lit portal can be struck too, and usually is: the far end is often one you built last
 week. Nothing needs the frame to be dark, only to be a portal by the time the striker looks.
+
+**A struck portal goes nowhere until it is tied.** It is a player portal from the first strike:
+step into one that is still waiting for its other half and nothing happens. It does not fall back
+to the nether, because somebody built it to go somewhere in particular and "nowhere yet" is closer
+to that than "the nether".
 
 ## Names
 
@@ -61,8 +75,12 @@ of.
 
 This needs Pandorical on the client. A vanilla nether portal's model carries no tint index, so
 nothing can colour it as the game ships it; the mod syncs vanilla's own two portal models with one
-added, and paints through Pandorical's per-position block tint. A client without Pandorical sees
-ordinary purple portals that work exactly the same.
+added, pointed at a copy of the portal texture drained to grey, and paints through Pandorical's
+per-position block tint. Grey, because a tint multiplies: over the purple original a white tint
+left a purple portal and a yellow one made brown, so half the palette read as no dye at all. Over
+grey the tint is the whole of the colour. Portals nobody struck get vanilla's purple back through
+the tint's fallback. A client without Pandorical sees ordinary purple portals that work exactly
+the same.
 
 ## Festering, Where Festering Portal Is Installed
 
@@ -121,18 +139,21 @@ mod in this suite avoids so that a client that has never heard of it can still p
 
 ## Details Worth Knowing
 
-- **The first end is held against you, not the item.** A striker you hand to somebody half used is
-  just a striker. What is actually true is that a person walked from one place to another holding a
-  plan, so the plan is filed under the person - and it survives a logout.
+- **The first end rides on the item.** A linked striker can be handed to somebody else, dropped in
+  a chest, or carried through the portal it holds; whoever strikes the second frame with it ties
+  the pair. It used to be held against the player instead, and a striker that had struck one end
+  looked exactly like one that had not. If the end it holds is mined out before it is used, the
+  next strike makes it a plain striker again, holding that portal as its first end.
 - **Striking the same portal twice** says so and changes nothing, rather than spending the striker
   on a link from a place to itself.
 - **Striking a portal that already leads somewhere** re-aims it. The alternative is a portal nobody
   can repurpose without finding and breaking its far end first, which for an end in another
   dimension is a trip.
 - **Break either end and the link is gone.** Noticed on the way through rather than watched for: a
-  portal whose partner has been mined out quietly goes back to being an ordinary nether portal.
-- **Everything unlinked is untouched.** An ordinary nether portal is still an ordinary nether
-  portal, including every one that existed before this was installed.
+  portal whose partner has been mined out goes dark and leads nowhere until it is struck again.
+- **Everything untouched is untouched.** An ordinary nether portal is still an ordinary nether
+  portal, including every one that existed before this was installed. Only a portal a striker has
+  touched is one of these.
 - **It is a real nether portal.** Not a block of this mod's own: lit by fire, repaired by vanilla,
   understood by every mod that has ever looked at one. A struck frame is a nether portal that was
   told where to go.
@@ -148,30 +169,9 @@ Player Portals registers its item model through Pandorical's content sync.
 **The Pandorical mod must be installed client-side** to see the striker rendered with its texture.
 Without it the mod still works, but a connecting client sees an untextured item.
 
-## Installation
+## Development
 
-Install server-side alongside its declared dependencies (see `fabric.mod.json`); connecting clients
-need only Pandorical. Version targets live in `gradle.properties` (Minecraft, loader, Fabric API)
-and `fabric.mod.json` (Java).
-
-## Key Files
-
-| File | Responsibility |
-|------|---------------|
-| `Main.java` | Entry point; the item and its creative tab |
-| `PortalStrikerItem.java` | Lighting a frame, holding the first end, tying the pair |
-| `PortalAnchor.java` | Naming a portal in a way that survives being relit |
-| `PortalRegistry.java` | Which portals lead to which, and who is half way through a pair |
-| `PortalLinks.java` | Where a portal actually goes, when somebody has said |
-| `PortalColors.java` | What colour a portal is, and getting it onto the glass |
-| `PortalSigns.java` | The name a striker was given, hanging in the portal it made |
-| `PortalMarking.java` | Changing a pair's colour or its name, after the fact |
-| `mixin/NetherPortalBlockMixin.java` | Answering the one question a portal asks |
-
-## Art
-
-`generate_icon.py` and `generate_textures.py` cut the mod's icon and item sprite out of the vanilla
-jar. Both are deterministic; re-run either after a Minecraft version bump.
+Installing, the map of the source and the art pipeline are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## License
 

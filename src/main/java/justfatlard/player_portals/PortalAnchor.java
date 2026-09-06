@@ -57,8 +57,16 @@ public record PortalAnchor(ResourceKey<Level> dimension, BlockPos pos) {
 	 * <p>Public because colouring a portal means colouring all of it: a tint is per block, and a
 	 * portal is several of them pretending to be one thing.
 	 */
+	/**
+	 * Every portal block joined to this one.
+	 *
+	 * <p>Reads only chunks that are loaded. A sheet can cross a chunk border, and asking for the
+	 * chunk on the far side would load it on the spot - or, asked from inside chunk loading,
+	 * wait on it forever. A sheet cut off at an unloaded chunk is completed when that chunk
+	 * arrives and is painted in its turn.
+	 */
 	public static Set<BlockPos> sheetOf(ServerLevel level, BlockPos inside) {
-		if (!level.getBlockState(inside).is(Blocks.NETHER_PORTAL)) return Set.of();
+		if (!level.hasChunkAt(inside) || !level.getBlockState(inside).is(Blocks.NETHER_PORTAL)) return Set.of();
 
 		Set<BlockPos> seen = new HashSet<>();
 		Deque<BlockPos> pending = new ArrayDeque<>();
@@ -72,6 +80,7 @@ public record PortalAnchor(ResourceKey<Level> dimension, BlockPos pos) {
 			for (net.minecraft.core.Direction face : net.minecraft.core.Direction.values()) {
 				BlockPos next = at.relative(face).immutable();
 				if (seen.contains(next)) continue;
+				if (!level.hasChunkAt(next)) continue;
 				if (!level.getBlockState(next).is(Blocks.NETHER_PORTAL)) continue;
 
 				seen.add(next);

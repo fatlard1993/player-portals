@@ -17,18 +17,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.portal.PortalShape;
 
 /**
- * The striker: lights a frame, remembers it, and on the second frame ties the two together and is
- * spent.
+ * The striker: lights a frame and becomes a {@link LinkedStrikerItem} holding it; that one,
+ * struck on a second frame, ties the two together and is spent.
  *
- * <p>Which end you are on is not written on the item, it is held against the player. A striker
- * that carried its first end would be a striker you could hand to somebody else half used, or
- * lose in a hopper with a location inside it, and it would need a data component of its own on
- * the wire for a vanilla client to fail to understand. What is actually true is that a person
- * walked from one place to another holding a plan, so the plan is filed under the person.
+ * <p>The first end rides on the item. It used to be held against the player instead, and a
+ * striker that had struck one end looked exactly like one that had not, which is the one thing
+ * a half-used striker has to say. Vanilla's custom data component carries the end, so nothing
+ * new crosses the wire.
  *
  * <p>An already-lit portal can be struck too, and that is the common case for the second end:
  * you built the far one last week. Nothing here needs the frame to be dark, only to be a portal
- * by the time we look.
+ * by the time we look. Either way, a portal a striker has touched is a player portal from then
+ * on: it leads where it is told, and until it is told, nowhere.
  */
 public class PortalStrikerItem extends Item {
 	public PortalStrikerItem(Properties settings) {
@@ -71,19 +71,36 @@ public class PortalStrikerItem extends Item {
 			return spoke(serverLevel, player, registry, anchor, hub, inside, context.getItemInHand());
 		}
 
-		PortalAnchor held = registry.pendingFor(player.getUUID());
+		ItemStack striking = context.getItemInHand();
+		PortalAnchor held = LinkedStrikerItem.endOf(striking);
 
 		if (held == null) {
-			registry.hold(player.getUUID(), anchor);
+			// The first end. The portal is ours from here and dark until it leads somewhere,
+			// and the striker in the hand becomes the one that is carrying it.
+			registry.strike(anchor);
 			PortalColors.broadcast(serverLevel.getServer(), anchor, PortalColors.UNPAIRED);
+			becomeLinked(player, context.getHand(), striking, LinkedStrikerItem.holding(anchor, striking));
 			player.sendSystemMessage(Component.translatable("player-portals-justfatlard.striker.first_end"));
 			return InteractionResult.SUCCESS;
 		}
 
 		if (held.equals(anchor)) {
-			// Struck the same portal twice. Left held rather than cleared, because the mistake
-			// is obvious and losing the first end over it would mean walking back.
+			// Struck the same portal twice. The striker keeps its end, because the mistake is
+			// obvious and losing the first end over it would mean walking back.
 			player.sendSystemMessage(Component.translatable("player-portals-justfatlard.striker.same_portal"));
+			return InteractionResult.SUCCESS;
+		}
+
+		ServerLevel heldLevel = serverLevel.getServer().getLevel(held.dimension());
+		if (heldLevel == null
+				|| !heldLevel.getBlockState(held.pos()).is(net.minecraft.world.level.block.Blocks.NETHER_PORTAL)) {
+			// The end it was carrying has been mined out since. Back to a plain striker, holding
+			// this portal as its first end instead: the walk here was not for nothing.
+			registry.strike(anchor);
+			PortalColors.broadcast(serverLevel.getServer(), anchor, PortalColors.UNPAIRED);
+			becomeLinked(player, context.getHand(), striking,
+				LinkedStrikerItem.holding(anchor, LinkedStrikerItem.unlinked(striking)));
+			player.sendSystemMessage(Component.translatable("player-portals-justfatlard.striker.end_gone"));
 			return InteractionResult.SUCCESS;
 		}
 
@@ -93,12 +110,10 @@ public class PortalStrikerItem extends Item {
 
 		// Whatever the striker was called on the anvil. Naming one is optional and most will not
 		// be; a pair with no name simply has no sign over it.
-		ItemStack striking = context.getItemInHand();
 		Component named = striking.get(net.minecraft.core.component.DataComponents.CUSTOM_NAME);
 		String name = named == null ? null : named.getString();
 
 		registry.tie(held, anchor, argb, name);
-		registry.release(player.getUUID());
 
 		PortalColors.broadcast(serverLevel.getServer(), held, argb);
 		PortalColors.broadcast(serverLevel.getServer(), anchor, argb);
@@ -110,12 +125,31 @@ public class PortalStrikerItem extends Item {
 		fester(serverLevel, held, anchor);
 		fester(serverLevel, anchor, held);
 
-		striking.consume(1, player);
+		// Spent outright, creative or not. consume() lets a creative player keep it, which is
+		// right for flint and wrong here: a linked striker holds one particular end, and one
+		// that survives the tie is still pointing at a portal that is now tied to something.
+		striking.shrink(1);
 
 		serverLevel.playSound(null, inside, SoundEvents.END_PORTAL_SPAWN, SoundSource.BLOCKS, 0.4F, 1.6F);
 		player.sendSystemMessage(Component.translatable("player-portals-justfatlard.striker.linked"));
 
 		return InteractionResult.SUCCESS;
+	}
+
+	/**
+	 * One striker out of the hand becomes the linked one; the rest of the stack stays.
+	 *
+	 * <p>Swapping the whole hand for the linked striker looked right with one striker in it
+	 * and threw the others away with more: a stack of five struck once was one linked striker.
+	 */
+	private static void becomeLinked(Player player, net.minecraft.world.InteractionHand hand,
+			ItemStack striking, ItemStack linked) {
+		if (striking.getCount() <= 1) {
+			player.setItemInHand(hand, linked);
+			return;
+		}
+		striking.shrink(1);
+		if (!player.addItem(linked)) player.drop(linked, false, net.minecraft.util.Prediction.PREDICTED);
 	}
 
 	/**
