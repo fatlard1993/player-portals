@@ -108,6 +108,14 @@ public final class PortalRegistry extends SavedData {
 		return this.struck.contains(portal);
 	}
 
+	/** Whether any portal in this dimension is one of ours, so a search there can skip asking otherwise. */
+	public boolean anyStruckIn(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension) {
+		for (PortalAnchor anchor : this.struck) {
+			if (anchor.dimension().equals(dimension)) return true;
+		}
+		return false;
+	}
+
 	/** A first end, struck and waiting: ours from now on, and dark until it leads somewhere. */
 	public void strike(PortalAnchor anchor) {
 		this.struck.add(anchor);

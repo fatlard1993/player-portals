@@ -29,5 +29,7 @@ public class NetherPortalBlockMixin {
 		TeleportTransition linked = PortalLinks.destinationFrom(level, entity, pos);
 
 		if (linked != null) cir.setReturnValue(linked);
+		// A struck portal with no partner, yet or any more, goes nowhere: never vanilla's nether.
+		else if (PortalLinks.leadsNowhere(level, pos)) cir.setReturnValue(null);
 	}
 }

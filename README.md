@@ -154,17 +154,30 @@ mod in this suite avoids so that a client that has never heard of it can still p
 - **Everything untouched is untouched.** An ordinary nether portal is still an ordinary nether
   portal, including every one that existed before this was installed. Only a portal a striker has
   touched is one of these.
+- **An ordinary portal never comes out of one of these.** Vanilla looks for the nearest portal on
+  the far side to arrive through, and a struck portal is a nether portal to it, so walking through
+  an ordinary portal near one used to send you out of somebody's linked portal. Struck portals are
+  left out of that search; with only those in range, vanilla builds a new portal as it would
+  anywhere.
+- **Ordinary portals go back the way they came.** A world of player portals is a world of portals
+  near each other, so the mod turns on Pandorical's paired nether portals by default: each
+  ordinary portal remembers the one its first traveller came out of, both ways round, and a new
+  portal never comes out of one already paired with another: it gets a partner of its own, built
+  on the far side if none is free. Struck portals are kept out of the pairing. An op can turn it
+  off on Pandorical's own settings page ("Nether portals go back the way they came").
 - **It is a real nether portal.** Not a block of this mod's own: lit by fire, repaired by vanilla,
   understood by every mod that has ever looked at one. A struck frame is a nether portal that was
   told where to go.
 
 ## Crafting
 
-Obsidian around a flint and steel, over an ender pearl.
+An iron ingot and a lapis lazuli, shapeless: flint and steel's recipe with lapis in place of the
+flint.
 
 ## Pandorical
 
-Player Portals registers its item model through Pandorical's content sync.
+Pandorical is required on the server; the mod will not load without it. Player Portals registers
+its item models through Pandorical's content sync.
 
 **The Pandorical mod must be installed client-side** to see the striker rendered with its texture.
 Without it the mod still works, but a connecting client sees an untextured item.

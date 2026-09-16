@@ -44,6 +44,17 @@ public class Main implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		if (PandoricalApi.isAvailable()) {
+			// A world with player portals in it is a world of portals built near each other, which
+			// is exactly where vanilla's nearest-portal rule sends a trip out of the wrong one. So
+			// ordinary portals pair up and go back the way they came - an op can still turn it off
+			// on Pandorical's page - and ours stay out of the pairing: a struck portal goes where it
+			// was told, and is nobody's way home.
+			PandoricalApi.portals().pairNetherPortals(true);
+			PandoricalApi.portals().keepOutOfPairing((level, pos) -> {
+				PortalAnchor anchor = PortalAnchor.of(level, pos);
+				return anchor != null && PortalRegistry.get(level.getServer()).isStruck(anchor);
+			});
+
 			PandoricalApi.content().registerItem(MOD_ID + ":portal_striker", new ItemRegistration()
 				.maxStackSize(1)
 				.model(MOD_ID + ":item/portal_striker"));

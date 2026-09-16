@@ -134,4 +134,39 @@ public final class PortalLinks {
 		}
 		return null;
 	}
+
+	/**
+	 * Whether the portal this block belongs to is one of ours, for vanilla's search for somewhere
+	 * to come out.
+	 *
+	 * <p>A struck portal is a nether portal to the game, so an ordinary portal's traveller was
+	 * being handed one whenever it was the nearest portal to where they would arrive: step
+	 * through an ordinary portal in the nether, come out of somebody's linked portal in the
+	 * overworld. A portal that has been told where it goes is not anybody else's way home.
+	 *
+	 * <p>The chunks round the block are loaded to answer, because a portal is only known as ours
+	 * by walking its whole sheet to the corner the registry names, and the far side of a trip is
+	 * usually somewhere nobody is standing. Only ever asked on a trip, never from inside chunk
+	 * loading. Each sheet is walked once per search: the answer goes into {@code seen} for every
+	 * block of it, since a portal is a POI at every one of its blocks.
+	 */
+	public static boolean struckPortalAt(ServerLevel level, BlockPos pos, PortalRegistry registry,
+			java.util.Map<BlockPos, Boolean> seen) {
+		Boolean known = seen.get(pos);
+		if (known != null) return known;
+
+		// A sheet is at most 23 across, so its blocks lie within the chunks round this one.
+		int cx = pos.getX() >> 4;
+		int cz = pos.getZ() >> 4;
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dz = -1; dz <= 1; dz++) level.getChunk(cx + dx, cz + dz);
+		}
+
+		java.util.Set<BlockPos> sheet = PortalAnchor.sheetOf(level, pos);
+		PortalAnchor anchor = sheet.isEmpty() ? null : PortalAnchor.of(level, pos);
+		boolean struck = anchor != null && registry.isStruck(anchor);
+		for (BlockPos block : sheet) seen.put(block.immutable(), struck);
+		seen.put(pos.immutable(), struck);
+		return struck;
+	}
 }
