@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "player-portals-gametest",
+	"version": "1.0.0",
+	"name": "Player Portals smoke test",
+	"description": "Loads the mod, joins a world, and fails if anything on the way threw.",
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"justfatlard.player_portals.gametest.SmokeTest"
+		]
+	},
+	"depends": {
+		"player-portals-justfatlard": "*",
+		"fabric-client-gametest-api-v1": "*"
+	}
+}
