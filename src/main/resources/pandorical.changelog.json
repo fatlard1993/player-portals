@@ -4,7 +4,9 @@
   ],
   "versions": {
     "1.0.0": [
-      "Strike one frame, walk to another, strike that, and the two lead to each other. Struck portals stay out of vanilla's search for somewhere to arrive, and an ordinary pair now goes back the way it came."
+      "Strike one frame, walk to another, strike that, and the two lead to each other.",
+      "Struck portals stay out of vanilla's search for somewhere to arrive.",
+      "An ordinary pair now goes back the way it came."
     ]
   }
 }
