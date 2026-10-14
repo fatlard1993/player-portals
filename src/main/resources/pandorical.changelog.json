@@ -3,6 +3,9 @@
     "One item: a striker that ties two obsidian frames to each other instead of to the map, so a portal comes out where you built it."
   ],
   "versions": {
+    "1.0.1": [
+      "Release notes rewritten to read plainly; nothing in play changes."
+    ],
     "1.0.0": [
       "Strike one frame, walk to another, strike that, and the two lead to each other.",
       "Struck portals stay out of vanilla's search for somewhere to arrive.",
