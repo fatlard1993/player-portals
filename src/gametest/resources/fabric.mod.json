@@ -8,7 +8,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"fabric-client-gametest": [
-			"justfatlard.player_portals.gametest.SmokeTest"
+			"justfatlard.player_portals.gametest.SmokeTest",
+			"justfatlard.player_portals.gametest.CrossFacing"
 		]
 	},
 	"depends": {

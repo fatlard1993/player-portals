@@ -64,7 +64,9 @@ public final class PortalLinks {
 			return null;
 		}
 
-		TeleportTransition outside = infrontOf(destination, there, entity);
+		BlockState entry = level.getBlockState(pos);
+		Direction.Axis from = entry.hasProperty(NetherPortalBlock.AXIS) ? entry.getValue(NetherPortalBlock.AXIS) : null;
+		TeleportTransition outside = infrontOf(destination, there, entity, from);
 		if (outside != null) return outside;
 
 		// Both faces of the far portal are walled up, so it is vanilla's arrival after all: inside
@@ -90,9 +92,14 @@ public final class PortalLinks {
 	 * turned to face away from it with your speed along that line. The swirl starts to fade the
 	 * moment you land, and there is nothing to walk out of.
 	 *
+	 * <p>Between frames facing different ways your look is turned a quarter first, as vanilla turns
+	 * a traveller: straight on, it is square to both far faces, and which one it chose came down to
+	 * how slightly you were turned. Turned, it picks the face Pandorical's immersive portals show
+	 * through the sheet.
+	 *
 	 * @return the transition, or null when neither face has room to stand
 	 */
-	private static TeleportTransition infrontOf(ServerLevel destination, PortalAnchor there, Entity entity) {
+	private static TeleportTransition infrontOf(ServerLevel destination, PortalAnchor there, Entity entity, Direction.Axis from) {
 		BlockState portal = destination.getBlockState(there.pos());
 		if (!portal.hasProperty(NetherPortalBlock.AXIS)) return null;
 		Direction.Axis axis = portal.getValue(NetherPortalBlock.AXIS);
@@ -115,6 +122,7 @@ public final class PortalLinks {
 			? new Direction[] {Direction.SOUTH, Direction.NORTH}
 			: new Direction[] {Direction.EAST, Direction.WEST};
 		Vec3 look = entity.getLookAngle();
+		if (from != null && from != axis) look = new Vec3(-look.z, look.y, look.x);
 		if (look.x * faces[1].getStepX() + look.z * faces[1].getStepZ()
 				> look.x * faces[0].getStepX() + look.z * faces[0].getStepZ()) {
 			faces = new Direction[] {faces[1], faces[0]};

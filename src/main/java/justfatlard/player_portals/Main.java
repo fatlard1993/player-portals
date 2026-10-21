@@ -2,8 +2,10 @@ package justfatlard.player_portals;
 
 import justfatlard.pandorical.api.ItemRegistration;
 import justfatlard.pandorical.api.PandoricalApi;
+import justfatlard.pandorical.api.PortalApi;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -53,6 +55,14 @@ public class Main implements ModInitializer {
 			PandoricalApi.portals().keepOutOfPairing((level, pos) -> {
 				PortalAnchor anchor = PortalAnchor.of(level, pos);
 				return anchor != null && PortalRegistry.get(level.getServer()).isStruck(anchor);
+			});
+			// Ours are out of the pairing, so with immersive portals on they would show nothing
+			// past them; this says where each leads instead.
+			PandoricalApi.portals().lookThrough((viewer, level, pos) -> {
+				PortalAnchor anchor = PortalAnchor.of(level, pos);
+				if (anchor == null) return null;
+				PortalAnchor there = PortalRegistry.get(level.getServer()).partnerOf(anchor);
+				return there == null ? null : PortalApi.FarEnd.of(GlobalPos.of(there.dimension(), there.pos()));
 			});
 
 			PandoricalApi.content().registerItem(MOD_ID + ":portal_striker", new ItemRegistration()

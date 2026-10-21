@@ -3,6 +3,10 @@
     "One item: a striker that ties two obsidian frames to each other instead of to the map, so a portal comes out where you built it."
   ],
   "versions": {
+    "1.1.0": [
+      "With Pandorical's immersive portals on, a struck portal shows the far end of its link through the swirl.",
+      "Between frames facing different ways, looking straight through always comes out of the same face: the one the portal shows. It used to come down to how slightly you were turned."
+    ],
     "1.0.1": [
       "Release notes rewritten to read plainly; nothing in play changes."
     ],
