@@ -66,11 +66,9 @@ public class Main implements ModInitializer {
 			PandoricalApi.content().registerModAssets(MOD_ID);
 
 			// A nether portal's model carries no tint index, so nothing can colour it as vanilla
-			// ships it. These are vanilla's own two models with one added, served above vanilla's
-			// copy by the synced pack, and they are the reason the colour has anywhere to land.
-			for (String model : new String[] {"nether_portal_ns", "nether_portal_ew"}) {
-				syncModelOverride("minecraft/models/block/" + model + ".json");
-			}
+			// ships it. The scan above also sends assets/minecraft/models/block/nether_portal_ns and
+			// _ew: vanilla's own two models with one added, served above vanilla's copy by the
+			// synced pack, and the reason the colour has anywhere to land.
 			// The portal texture the client draws is vanilla's drained to grey, so the tint is the
 			// whole of the colour: white is white and yellow is yellow, where a tint over the
 			// purple original made half the palette look like no dye at all. Untouched portals
@@ -107,18 +105,5 @@ public class Main implements ModInitializer {
 			PortalColors::paintArrived);
 
 		System.out.println("[" + MOD_ID + "] Loaded (server-side with Pandorical)");
-	}
-
-	/** Ship one of our {@code minecraft}-namespace overrides, which registerModAssets does not scan for. */
-	private static void syncModelOverride(String path) {
-		try (java.io.InputStream in = Main.class.getClassLoader().getResourceAsStream("assets/" + path)) {
-			if (in == null) {
-				LOGGER.error("[{}] Missing bundled asset {}; portals will not take colour", MOD_ID, path);
-				return;
-			}
-			PandoricalApi.content().registerAsset(path, in.readAllBytes());
-		} catch (java.io.IOException e) {
-			LOGGER.error("[{}] Could not read bundled asset {}: {}", MOD_ID, path, e.getMessage());
-		}
 	}
 }
