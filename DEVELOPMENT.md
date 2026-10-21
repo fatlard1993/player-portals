@@ -13,6 +13,8 @@ and `fabric.mod.json` (Java).
 | File | Responsibility |
 |------|---------------|
 | `Main.java` | Entry point; the two items, their creative tab, and the Pandorical wiring (content sync, portal tint, paired nether portals) |
+| `PandoricalVersion.java` | Whether the running Pandorical has a feature newer than the oldest this loads with |
+| `PortalViews.java` | Where a struck portal leads, shown through immersive portals; its own class, loaded only beside Pandorical 15.24.1 or newer |
 | `PortalStrikerItem.java` | Lighting a frame, tying the pair, wiring hubs and their spokes |
 | `LinkedStrikerItem.java` | A striker carrying its first end, held in its own custom data |
 | `PortalAnchor.java` | Naming a portal in a way that survives being relit |
