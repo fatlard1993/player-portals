@@ -1,0 +1,39 @@
+{
+  "demo": {
+    "name": "Player Portals",
+    "icon": "player-portals-justfatlard:portal_striker",
+    "about": [
+      "A striker that ties two obsidian portal frames to each other instead of to the map.",
+      "Build two frames a good walk apart, strike one, strike the other with the linked striker, then step through, and right-click a frame with a dye to colour the pair."
+    ]
+  },
+  "pvp_preset": 1,
+  "needs": ["player-portals-justfatlard"],
+  "preset": {
+    "name": "Player Portals",
+    "icon": "player-portals-justfatlard:portal_striker",
+    "pvp": false,
+    "game_mode": "survival",
+    "sealed": false,
+    "entry_kit": [
+      {"slot": 0, "item": {"id": "player-portals-justfatlard:portal_striker", "count": 1}},
+      {"slot": 1, "item": {"id": "minecraft:obsidian", "count": 32}},
+      {"slot": 2, "item": {"id": "player-portals-justfatlard:portal_striker", "count": 1}},
+      {"slot": 3, "item": {"id": "minecraft:red_dye", "count": 4}},
+      {"slot": 4, "item": {"id": "minecraft:light_blue_dye", "count": 4}},
+      {"slot": 5, "item": {"id": "minecraft:lime_dye", "count": 4}},
+      {"slot": 6, "item": {"id": "minecraft:diamond_pickaxe", "count": 1}},
+      {"slot": 7, "item": {"id": "minecraft:cobblestone", "count": 32}},
+      {"slot": 8, "item": {"id": "minecraft:bread", "count": 8}}
+    ],
+    "respawn_kit": "entry",
+    "goal": "time",
+    "mobs": "off",
+    "life": 15,
+    "size": 4,
+    "world": "overworld",
+    "shape": "flat",
+    "biome": "minecraft:plains",
+    "weather": "clear"
+  }
+}
