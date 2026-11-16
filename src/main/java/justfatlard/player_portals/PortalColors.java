@@ -1,11 +1,14 @@
 package justfatlard.player_portals;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import justfatlard.pandorical.api.PandoricalApi;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -14,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.level.ChunkPos;
 
 /**
  * What colour a portal is, and getting that colour onto the glass.
@@ -130,9 +134,10 @@ public final class PortalColors {
 
 		for (var arrived : ARRIVED.entrySet()) {
 			ServerLevel level = arrived.getKey();
-			for (net.minecraft.world.level.ChunkPos chunk : arrived.getValue()) {
-				PortalSigns.upkeep(level, chunk);
-			}
+			Set<Long> chunks = new HashSet<>();
+			for (ChunkPos chunk : arrived.getValue()) chunks.add(chunk.pack());
+
+			PortalSigns.upkeep(level, chunks);
 			if (level.players().isEmpty()) continue;
 
 			Map<BlockPos, Integer> paint = new HashMap<>();
@@ -141,14 +146,7 @@ public final class PortalColors {
 				// Any anchor whose sheet could cross into an arrived chunk, not only the ones
 				// anchored inside it: the far half of a straddling portal is painted when its
 				// chunk arrives, whichever half the anchor sits in.
-				for (net.minecraft.world.level.ChunkPos chunk : arrived.getValue()) {
-					if (anchor.pos().getX() < chunk.getMinBlockX() - SHEET_REACH
-							|| anchor.pos().getX() > chunk.getMaxBlockX() + SHEET_REACH
-							|| anchor.pos().getZ() < chunk.getMinBlockZ() - SHEET_REACH
-							|| anchor.pos().getZ() > chunk.getMaxBlockZ() + SHEET_REACH) continue;
-					paint.putAll(sheet(level, anchor, argb));
-					break;
-				}
+				if (reachesAny(anchor.pos(), chunks)) paint.putAll(sheet(level, anchor, argb));
 			});
 
 			if (paint.isEmpty()) continue;
@@ -156,6 +154,25 @@ public final class PortalColors {
 				PandoricalApi.blockTints().paint(player, paint);
 			}
 		}
+		ARRIVED.clear();
+	}
+
+	/** Whether a sheet anchored here could cross into any of these chunks. */
+	private static boolean reachesAny(BlockPos anchor, Set<Long> chunks) {
+		int minX = SectionPos.blockToSectionCoord(anchor.getX() - SHEET_REACH);
+		int maxX = SectionPos.blockToSectionCoord(anchor.getX() + SHEET_REACH);
+		int minZ = SectionPos.blockToSectionCoord(anchor.getZ() - SHEET_REACH);
+		int maxZ = SectionPos.blockToSectionCoord(anchor.getZ() + SHEET_REACH);
+		for (int x = minX; x <= maxX; x++) {
+			for (int z = minZ; z <= maxZ; z++) {
+				if (chunks.contains(ChunkPos.pack(x, z))) return true;
+			}
+		}
+		return false;
+	}
+
+	/** Chunks noted during a shutdown belong to that server's levels, not the next world's. */
+	public static void forgetArrived() {
 		ARRIVED.clear();
 	}
 

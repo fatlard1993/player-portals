@@ -103,6 +103,8 @@ public class Main implements ModInitializer {
 		// The painting and the signs' upkeep, once the tick is out of chunk loading.
 		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(
 			PortalColors::paintArrived);
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STOPPED.register(
+			server -> PortalColors.forgetArrived());
 
 		System.out.println("[" + MOD_ID + "] Loaded (server-side with Pandorical)");
 	}

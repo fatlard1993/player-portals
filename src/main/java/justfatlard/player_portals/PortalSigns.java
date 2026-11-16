@@ -57,21 +57,22 @@ public final class PortalSigns {
 	}
 
 	/**
-	 * Keep the signs in one chunk honest as it loads.
+	 * Keep the signs in the chunks that just loaded honest.
 	 *
 	 * <p>Two things go wrong on their own and neither announces itself. A sign can go missing -
 	 * discarded by a command, cleared by something else tidying entities - and a portal can be
 	 * mined out from under its sign, which leaves a name hanging in the air over nothing. Chunk
 	 * load is the one moment both are cheap to check, because the blocks are in memory anyway.
 	 */
-	public static void upkeep(ServerLevel level, net.minecraft.world.level.ChunkPos chunk) {
+	public static void upkeep(ServerLevel level, Set<Long> chunks) {
 		PortalRegistry registry = PortalRegistry.get(level.getServer());
 
-		for (var entry : registry.everyName().entrySet()) {
-			PortalAnchor portal = entry.getKey();
+		for (PortalAnchor portal : registry.everyName().keySet()) {
 			if (!portal.dimension().equals(level.dimension())) continue;
-			if (net.minecraft.core.SectionPos.blockToSectionCoord(portal.pos().getX()) != chunk.x()) continue;
-			if (net.minecraft.core.SectionPos.blockToSectionCoord(portal.pos().getZ()) != chunk.z()) continue;
+			if (!chunks.contains(net.minecraft.world.level.ChunkPos.pack(portal.pos()))) continue;
+			// Untying an earlier portal in this pass can take its partner's name with it.
+			String name = registry.nameOf(portal);
+			if (name == null) continue;
 			// Judged only once the chunk is genuinely here. Called from inside its load the
 			// sheet read nothing, and a portal with no sheet is a portal to untie.
 			if (!level.hasChunkAt(portal.pos())) continue;
@@ -87,7 +88,7 @@ public final class PortalSigns {
 			}
 
 			if (sign == null || level.getEntity(sign) == null) {
-				registry.rememberSign(portal, show(level, portal, entry.getValue(), sign));
+				registry.rememberSign(portal, show(level, portal, name, sign));
 			}
 		}
 	}
