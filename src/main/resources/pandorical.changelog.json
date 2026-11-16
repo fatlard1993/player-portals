@@ -3,6 +3,9 @@
     "One item: a striker that ties two obsidian frames to each other instead of to the map, so a portal comes out where you built it."
   ],
   "versions": {
+    "1.1.5": [
+      "Chunks loading near many portals find the portals around them in one pass per tick, and a world switch no longer carries the last world's arriving chunks into the next."
+    ],
     "1.1.4": [
       "A demo to play in PvP Dimensions' onboarding."
     ],
