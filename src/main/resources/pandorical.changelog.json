@@ -3,6 +3,9 @@
     "One item: a striker that ties two obsidian frames to each other instead of to the map, so a portal comes out where you built it."
   ],
   "versions": {
+    "1.1.7": [
+      "Lithium's faster portal search, which replaces the search this mod hooks and stopped the server at startup beside it, is switched off from this mod's own manifest."
+    ],
     "1.1.6": [
       "Every link a portal registry holds can be listed, ties and hub spokes alike, for a map to draw them."
     ],
