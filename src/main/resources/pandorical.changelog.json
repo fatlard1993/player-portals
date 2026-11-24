@@ -3,6 +3,9 @@
     "One item: a striker that ties two obsidian frames to each other instead of to the map, so a portal comes out where you built it."
   ],
   "versions": {
+    "1.1.6": [
+      "Every link a portal registry holds can be listed, ties and hub spokes alike, for a map to draw them."
+    ],
     "1.1.5": [
       "Chunks loading near many portals find the portals around them in one pass per tick, and a world switch no longer carries the last world's arriving chunks into the next."
     ],
