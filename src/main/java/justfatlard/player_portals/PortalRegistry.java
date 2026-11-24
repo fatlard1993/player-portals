@@ -127,6 +127,11 @@ public final class PortalRegistry extends SavedData {
 		return Map.copyOf(this.colours);
 	}
 
+	/** Each portal and where it leads: a tie both ways round, a hub's spoke one way only. */
+	public Map<PortalAnchor, PortalAnchor> everyLink() {
+		return Map.copyOf(this.pairs);
+	}
+
 	public Integer colourOf(PortalAnchor portal) {
 		return this.colours.get(portal);
 	}
